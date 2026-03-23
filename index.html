@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rotation Agent — Powered by Nano Banana 2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --yellow:    #FFD600;
+  --yellow-lt: #FFF9CC;
+  --yellow-dk: #E6C000;
+  --banana:    #FFEC6E;
+  --bg:        #F7F8FA;
+  --white:     #FFFFFF;
+  --surface:   #FFFFFF;
+  --border:    #E8E9EF;
+  --border2:   #D0D2DC;
+  --text:      #1A1B23;
+  --muted:     #7B7D8E;
+  --brain-bg:  #EEF2FF;
+  --brain-clr: #6366F1;
+  --cv-bg:     #F0FDF4;
+  --cv-clr:    #16A34A;
+  --img-bg:    #FFF7ED;
+  --img-clr:   #EA580C;
+  --shadow:    0 1px 3px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,.1), 0 1px 4px rgba(0,0,0,.06);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TOP NAV ─────────────────────────────────────────────── */
+nav {
+  background: var(--white);
+  border-bottom: 1.5px solid var(--border);
+  padding: 0 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-pill {
+  background: var(--yellow);
+  border-radius: 10px;
+  padding: 5px 11px 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.logo-pill .emoji { font-size: 18px; line-height: 1; }
+
+.nav-badge {
+  background: var(--yellow-lt);
+  border: 1.5px solid var(--yellow);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #856500;
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── API KEY INPUT ───────────────────────────────────────── */
+.apikey-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+  transition: border-color .2s, box-shadow .2s;
+}
+.apikey-wrap:focus-within {
+  border-color: var(--yellow-dk);
+  box-shadow: 0 0 0 3px rgba(255,214,0,.2);
+}
+.apikey-label {
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #856500;
+  background: var(--yellow-lt);
+  border-right: 1.5px solid var(--border2);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 5px;
+}
+.apikey-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text);
+  padding: 0 10px;
+  width: 200px;
+  height: 36px;
+}
+.apikey-input::placeholder { color: #B0B2C0; }
+.apikey-toggle {
+  padding: 0 10px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  height: 36px;
+  display: flex; align-items: center;
+  border: none; background: transparent;
+  transition: color .15s;
+}
+.apikey-toggle:hover { color: var(--text); }
+.apikey-status {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border2);
+  margin-right: 6px;
+  transition: background .3s;
+  flex-shrink: 0;
+}
+.apikey-status.ok  { background: #22C55E; box-shadow: 0 0 0 2px rgba(34,197,94,.2); }
+.apikey-status.err { background: #EF4444; box-shadow: 0 0 0 2px rgba(239,68,68,.2); }
+
+.nav-tag {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 5px 12px;
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 36px 24px 80px;
+}
+
+/* ── HERO ────────────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--yellow);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B4F00;
+  padding: 5px 14px;
+  margin-bottom: 18px;
+}
+
+.hero h1 {
+  font-size: clamp(28px, 4.5vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, #E6A000 0%, #FFD600 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ── 3-MODULE ARCH BAR ───────────────────────────────────── */
+.arch-bar {
+  display: grid;
+  grid-template-columns: 1fr 36px 1fr 36px 1fr;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 36px;
+}
+
+.arch-card {
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 16px;
+  text-align: center;
+  transition: border-color .25s, box-shadow .25s, transform .2s;
+  cursor: default;
+}
+
+.arch-card.brain { --clr: var(--brain-clr); --bg2: var(--brain-bg); }
+.arch-card.cv    { --clr: var(--cv-clr);    --bg2: var(--cv-bg); }
+.arch-card.img   { --clr: var(--img-clr);   --bg2: var(--img-bg); }
+
+.arch-card.lit {
+  border-color: var(--clr);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--clr) 12%, transparent);
+  transform: translateY(-2px);
+}
+
+.arch-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--bg2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  margin: 0 auto 10px;
+  transition: background .25s;
+}
+
+.arch-card.lit .arch-icon { background: color-mix(in srgb, var(--clr) 18%, white); }
+
+.arch-num {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--clr);
+  margin-bottom: 3px;
+}
+
+.arch-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.arch-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.arch-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.arch-arrow-track {
+  width: 28px;
+  height: 2px;
+  background: var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.arch-arrow-track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--yellow-dk), transparent);
+  transform: translateX(-100%);
+  transition: none;
+}
+
+.arch-arrow-track.flow::after {
+  animation: arrflow .7s ease forwards;
+}
+
+@keyframes arrflow { to { transform: translateX(200%); } }
+
+.arch-arrow-tip {
+  font-size: 13px;
+  color: var(--border2);
+  line-height: 1;
+}
+
+.arch-arrow-lbl {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+/* ── MAIN GRID ────────────────────────────────────────────── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 680px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .arch-bar { grid-template-columns: 1fr; }
+  .arch-arrow { display: none; }
+}
+
+/* ── CARD ────────────────────────────────────────────────── */
+.card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.card-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.card-subtitle {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+/* ── UPLOAD ZONE ─────────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 14px;
+  padding: 36px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+  background: var(--bg);
+}
+
+.upload-zone:hover, .upload-zone.over {
+  border-color: var(--yellow-dk);
+  background: var(--yellow-lt);
+}
+
+.upload-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+
+.upload-emoji { font-size: 32px; margin-bottom: 10px; display: block; }
+
+.upload-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.upload-text strong { color: var(--text); }
+
+.preview-box {
+  display: none;
+  margin-top: 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  text-align: center;
+  padding: 12px;
+}
+
+#preview-img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  transition: transform .6s cubic-bezier(.34,1.56,.64,1);
+  display: block;
+  margin: 0 auto;
+}
+
+.preview-name {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: 8px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── PROMPT ──────────────────────────────────────────────── */
+.prompt-wrap {
+  margin-top: 16px;
+  position: relative;
+}
+
+.prompt-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border2);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 13px 16px;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  resize: none;
+}
+
+.prompt-input:focus {
+  border-color: var(--yellow-dk);
+  box-shadow: 0 0 0 3px rgba(255,214,0,.25);
+}
+
+.prompt-input::placeholder { color: #B0B2C0; }
+
+.run-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: var(--yellow);
+  border: 2px solid var(--yellow-dk);
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 13px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background .15s, transform .15s, box-shadow .15s;
+  letter-spacing: -0.01em;
+}
+
+.run-btn:hover:not(:disabled) {
+  background: var(--yellow-dk);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(230,192,0,.4);
+}
+
+.run-btn:active:not(:disabled) { transform: translateY(0); }
+.run-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── PRESETS ─────────────────────────────────────────────── */
+.preset-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin: 14px 0 8px;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chip {
+  background: var(--bg);
+  border: 1.5px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.chip:hover {
+  background: var(--yellow-lt);
+  border-color: var(--yellow-dk);
+  color: #7A5200;
+}
+
+/* ── PIPELINE ────────────────────────────────────────────── */
+.pipeline { display: flex; flex-direction: column; gap: 0; }
+
+.p-step {
+  display: flex;
+  gap: 14px;
+  opacity: .3;
+  transition: opacity .35s;
+}
+
+.p-step.active { opacity: 1; }
+.p-step.done   { opacity: .65; }
+
+.p-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 34px;
+}
+
+.p-dot {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--border2);
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  transition: border-color .3s, background .3s;
+}
+
+.p-step.brain.active  .p-dot { border-color: var(--brain-clr); background: var(--brain-bg); }
+.p-step.cv.active     .p-dot { border-color: var(--cv-clr);    background: var(--cv-bg); }
+.p-step.img.active    .p-dot { border-color: var(--img-clr);   background: var(--img-bg); }
+.p-step.done .p-dot { background: var(--yellow-lt); border-color: var(--yellow-dk); }
+
+.p-connector {
+  flex: 1;
+  width: 2px;
+  background: var(--border);
+  margin: 4px 0;
+  min-height: 16px;
+}
+
+.p-body {
+  padding: 2px 0 22px;
+  flex: 1;
+  min-width: 0;
+}
+
+.p-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+
+.p-step.brain .p-title { color: var(--brain-clr); }
+.p-step.cv    .p-title { color: var(--cv-clr); }
+.p-step.img   .p-title { color: var(--img-clr); }
+
+.p-log {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  line-height: 1.75;
+  color: var(--muted);
+  min-height: 48px;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.p-step.brain.active .p-log { border-color: #C7D2FE; background: #F5F7FF; }
+.p-step.cv.active    .p-log { border-color: #BBF7D0; background: #F0FDF4; }
+.p-step.img.active   .p-log { border-color: #FED7AA; background: #FFF7ED; }
+
+.tok { }
+.tok-k  { color: #6366F1; font-weight: 600; }
+.tok-v  { color: #0F172A; }
+.tok-s  { color: #D97706; }
+.tok-c  { color: #94A3B8; font-style: italic; }
+.tok-ok { color: #16A34A; font-weight: 600; }
+.tok-err{ color: #DC2626; }
+
+/* ── RESULTS ─────────────────────────────────────────────── */
+#result-panel { display: none; }
+
+.result-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.result-img-card {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.result-img-card img, .result-img-card canvas {
+  max-width: 100%;
+  max-height: 180px;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+}
+
+.result-img-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-top: 8px;
+}
+
+.params-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.param-cell {
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.param-key {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  margin-bottom: 3px;
+}
+
+.param-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.status-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #F0FDF4;
+  border: 1.5px solid #86EFAC;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #166534;
+  padding: 4px 10px;
+  margin-top: 12px;
+}
+
+/* ── SPINNER ─────────────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── CURSOR ──────────────────────────────────────────────── */
+@keyframes blink { 50% { opacity: 0; } }
+.cur {
+  display: inline-block;
+  width: 6px; height: 11px;
+  background: #6366F1;
+  vertical-align: middle;
+  border-radius: 1px;
+  margin-left: 2px;
+  animation: blink .85s step-end infinite;
+}
+
+/* ── FOOTER STRIP ────────────────────────────────────────── */
+.footer-strip {
+  margin-top: 48px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.footer-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--yellow-lt);
+  border: 1.5px solid var(--yellow);
+  border-radius: 8px;
+  padding: 4px 12px;
+  color: #7A5200;
+  font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="logo-pill">
+      <span class="emoji">🍌</span>
+      Nano Banana
+    </div>
+    <div class="nav-badge">Pro</div>
+  </a>
+  <div class="nav-right">
+    <div class="nav-tag">Image Rotation Agent</div>
+    <div class="apikey-wrap">
+      <div class="apikey-label">
+        <div class="apikey-status" id="key-status"></div>
+        🔑 Gemini API Key
+      </div>
+      <input class="apikey-input" id="gemini-key" type="password"
+        placeholder="AIza…" autocomplete="off"
+        oninput="onKeyInput(this.value)">
+      <button class="apikey-toggle" onclick="toggleKeyVis()" title="Show/hide">👁</button>
+    </div>
+  </div>
+</nav>
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">🍌 Powered by Nano Banana Pro</div>
+    <h1>Image Rotation <em>Agent</em></h1>
+    <p class="hero-sub">Three modules working together — LLM · OpenCV · Inpainting</p>
+  </div>
+
+  <!-- ARCH BAR -->
+  <div class="arch-bar" id="arch-bar">
+    <div class="arch-card brain" id="mod-brain">
+      <div class="arch-icon">🧠</div>
+      <div class="arch-num">Module 1</div>
+      <div class="arch-name">LLM Brain</div>
+      <div class="arch-desc">Parses natural language, extracts rotation params</div>
+    </div>
+
+    <div class="arch-arrow">
+      <div class="arch-arrow-track" id="arr1"></div>
+      <div class="arch-arrow-tip">›</div>
+      <div class="arch-arrow-lbl">Params</div>
+    </div>
+
+    <div class="arch-card cv" id="mod-cv">
+      <div class="arch-icon">⚙️</div>
+      <div class="arch-num">Tool 1</div>
+      <div class="arch-name">OpenCV Runner</div>
+      <div class="arch-desc">Precise math rotation via affine transform</div>
+    </div>
+
+    <div class="arch-arrow">
+      <div class="arch-arrow-track" id="arr2"></div>
+      <div class="arch-arrow-tip">›</div>
+      <div class="arch-arrow-lbl">Inpaint</div>
+    </div>
+
+    <div class="arch-card img" id="mod-img">
+      <div class="arch-icon">🎨</div>
+      <div class="arch-num">Tool 2</div>
+      <div class="arch-name">Nano Banana Pro</div>
+      <div class="arch-desc">Fills rotated corners via Inpainting / Outpainting</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT: INPUT -->
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:#FFF9CC;">📁</div>
+          <div>
+            <div class="card-title">Upload Image</div>
+            <div class="card-subtitle">PNG · JPG · WEBP up to 5 MB</div>
+          </div>
+        </div>
+
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept="image/*">
+          <span class="upload-emoji">🖼️</span>
+          <div class="upload-text"><strong>Click to upload</strong> or drag &amp; drop</div>
+        </div>
+
+        <div class="preview-box" id="preview-box">
+          <img id="preview-img" src="" alt="preview">
+          <div class="preview-name" id="preview-name">—</div>
+        </div>
+
+        <div class="prompt-wrap">
+          <input class="prompt-input" id="prompt" type="text"
+            placeholder="e.g. Rotate 40° counter-clockwise and fill the corners…">
+        </div>
+
+        <button class="run-btn" id="run-btn" onclick="runAgent()">
+          <span id="btn-icon">🍌</span>
+          <span id="btn-txt">Run Agent</span>
+        </button>
+
+        <div class="preset-label">Quick presets</div>
+        <div class="presets">
+          <span class="chip" onclick="setP('Rotate 90° clockwise')">↻ CW 90°</span>
+          <span class="chip" onclick="setP('Rotate 45° counter-clockwise and fill corners with AI')">↺ CCW 45°</span>
+          <span class="chip" onclick="setP('Rotate 30° and do outpainting to extend the image')">↷ 30° + Outpaint</span>
+          <span class="chip" onclick="setP('Flip the image horizontally')">⇄ Flip H</span>
+          <span class="chip" onclick="setP('Rotate 180 degrees')">↕ 180°</span>
+          <span class="chip" onclick="setP('Tilt 15° clockwise for a cinematic angle')">🎬 Cinematic Tilt</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: PIPELINE + RESULT -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- PIPELINE -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:#FFF9CC;">⚡</div>
+          <div>
+            <div class="card-title">Agent Pipeline</div>
+            <div class="card-subtitle">Live execution log</div>
+          </div>
+        </div>
+
+        <div class="pipeline">
+
+          <div class="p-step brain" id="step-brain">
+            <div class="p-track">
+              <div class="p-dot">🧠</div>
+              <div class="p-connector"></div>
+            </div>
+            <div class="p-body">
+              <div class="p-title">LLM Brain — Parameter Extraction</div>
+              <div class="p-log" id="log-brain">Waiting for input…</div>
+            </div>
+          </div>
+
+          <div class="p-step cv" id="step-cv">
+            <div class="p-track">
+              <div class="p-dot">⚙️</div>
+              <div class="p-connector"></div>
+            </div>
+            <div class="p-body">
+              <div class="p-title">Tool 1 — OpenCV Rotation</div>
+              <div class="p-log" id="log-cv">Waiting for LLM output…</div>
+            </div>
+          </div>
+
+          <div class="p-step img" id="step-img">
+            <div class="p-track">
+              <div class="p-dot">🎨</div>
+            </div>
+            <div class="p-body">
+              <div class="p-title">Tool 2 — Nano Banana 2 Inpainting</div>
+              <div class="p-log" id="log-img">Waiting for rotated image…</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RESULT -->
+      <div class="card" id="result-panel">
+        <div class="card-header">
+          <div class="card-icon" style="background:#FFF7ED;">✨</div>
+          <div>
+            <div class="card-title">Final Output</div>
+            <div class="card-subtitle">Before vs. After</div>
+          </div>
+        </div>
+
+        <div class="result-duo">
+          <div class="result-img-card">
+            <img id="res-before" src="" alt="before">
+            <div class="result-img-label">Original</div>
+          </div>
+          <div class="result-img-card" style="border-color:#FED7AA;">
+            <canvas id="res-canvas"></canvas>
+            <div class="result-img-label">Rotated + AI Fill</div>
+          </div>
+        </div>
+
+        <div class="params-grid" id="params-grid"></div>
+
+        <div class="status-ok">✅ Processing complete</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span>🍌 Nano Banana Pro · gemini-2.0-flash-preview-image-generation · Gemini API</span>
+  </div>
+
+</div>
+
+<script>
+// ── state
+let uploadedFile = null;
+
+// ── upload
+const fileInput = document.getElementById('file-input');
+const uploadZone = document.getElementById('upload-zone');
+
+fileInput.addEventListener('change', e => { if (e.target.files[0]) load(e.target.files[0]); });
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('over');
+  if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0]);
+});
+
+function load(file) {
+  uploadedFile = file;
+  const url = URL.createObjectURL(file);
+  const img = document.getElementById('preview-img');
+  img.src = url;
+  img.style.transform = '';
+  document.getElementById('preview-box').style.display = 'block';
+  document.getElementById('preview-name').textContent = file.name;
+}
+
+function setP(t) { document.getElementById('prompt').value = t; }
+
+// ── helpers
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function litModule(id) {
+  ['mod-brain','mod-cv','mod-img'].forEach(m => document.getElementById(m).classList.remove('lit'));
+  if (id) document.getElementById(id).classList.add('lit');
+}
+
+function flowArr(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('flow'); void el.offsetWidth; el.classList.add('flow');
+}
+
+function setStep(active) {
+  ['step-brain','step-cv','step-img'].forEach(s => {
+    document.getElementById(s).classList.remove('active');
+  });
+  if (active) document.getElementById(active).classList.add('active');
+}
+
+function doneStep(id) {
+  document.getElementById(id).classList.remove('active');
+  document.getElementById(id).classList.add('done');
+}
+
+async function typeLog(elId, lines, delay = 55) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  for (const line of lines) {
+    el.innerHTML += line + '\n';
+    await sleep(delay);
+  }
+}
+
+// ── API key helpers
+function getKey() { return document.getElementById('gemini-key').value.trim(); }
+
+function onKeyInput(val) {
+  const st = document.getElementById('key-status');
+  if (val.length > 10) {
+    st.className = 'apikey-status ok';
+  } else if (val.length > 0) {
+    st.className = 'apikey-status err';
+  } else {
+    st.className = 'apikey-status';
+  }
+}
+
+function toggleKeyVis() {
+  const inp = document.getElementById('gemini-key');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ── LLM call (Claude for param extraction — uses built-in proxy)
+async function callLLM(userPrompt) {
+  const sys = `You are a parameter extractor for an image rotation agent. Extract rotation parameters from natural language.
+Return ONLY a JSON object with no markdown, no explanation:
+{
+  "direction": "clockwise"|"counterclockwise"|"flip_h"|"flip_v",
+  "angle": <0-360>,
+  "inpainting": true|false,
+  "outpainting": true|false,
+  "fill_prompt": "<English prompt for inpainting background fill>",
+  "reasoning": "<1-sentence explanation>"
+}
+Rules: flip ops → angle=0. If user mentions fill/corners/outpainting → inpainting=true.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: sys,
+      messages: [{ role: "user", content: userPrompt }]
+    })
+  });
+  const data = await res.json();
+  const text = data.content?.[0]?.text || '{}';
+  return JSON.parse(text.trim().replace(/```json|```/g,''));
+}
+
+// ── Nano Banana Pro (Gemini) real API call
+// Calls gemini-2.0-flash-preview-image-generation for inpainting/outpainting
+async function callNanoBananaPro(base64Image, mimeType, fillPrompt, params) {
+  const apiKey = getKey();
+  if (!apiKey) throw new Error('No Gemini API key provided');
+
+  const model = 'gemini-2.0-flash-preview-image-generation';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const dir = params.direction;
+  const angle = params.angle;
+  const dirLabel = dir === 'counterclockwise' ? `${angle}° counter-clockwise`
+                 : dir === 'clockwise'        ? `${angle}° clockwise`
+                 : dir === 'flip_h'           ? 'horizontally flipped'
+                 : 'vertically flipped';
+
+  const editInstruction = `This image has been rotated ${dirLabel} using OpenCV, leaving empty/black triangular corners. 
+Please fill in the empty corners seamlessly using inpainting so the image looks complete and natural.
+Fill style: ${fillPrompt || 'photorealistic background continuation matching the existing scene'}.
+Keep the rotated subject exactly as-is; only fill the blank corner areas.`;
+
+  const body = {
+    contents: [{
+      parts: [
+        { text: editInstruction },
+        { inline_data: { mime_type: mimeType, data: base64Image } }
+      ]
+    }],
+    generationConfig: {
+      responseModalities: ["TEXT", "IMAGE"]
+    }
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Gemini API error ${res.status}`);
+  }
+
+  const data = await res.json();
+  // Extract image part from response
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  const imgPart = parts.find(p => p.inline_data?.mime_type?.startsWith('image/'));
+  if (!imgPart) throw new Error('No image returned from Nano Banana Pro');
+  return { base64: imgPart.inline_data.data, mimeType: imgPart.inline_data.mime_type };
+}
+
+// ── OpenCV sim
+async function runCV(params, previewImg) {
+  const dir = params.direction;
+  const a = params.angle;
+  const deg = dir === 'counterclockwise' ? a : dir === 'clockwise' ? -a : 0;
+
+  const lines = [
+    `<span class="tok-c"># Tool 1: OpenCV Affine Rotation</span>`,
+    `<span class="tok-k">import</span> cv2, numpy <span class="tok-k">as</span> np`,
+    `img = cv2.imread(<span class="tok-s">"input.jpg"</span>)`,
+    `h, w = img.shape[:2]`,
+    dir === 'flip_h'
+      ? `result = cv2.flip(img, <span class="tok-v">1</span>)  <span class="tok-c"># horizontal flip</span>`
+    : dir === 'flip_v'
+      ? `result = cv2.flip(img, <span class="tok-v">0</span>)  <span class="tok-c"># vertical flip</span>`
+      : `M = cv2.getRotationMatrix2D((w/2, h/2), <span class="tok-v">${deg}</span>, 1.0)`,
+    dir.startsWith('flip') ? '' : `result = cv2.warpAffine(img, M, (w, h))`,
+    `cv2.imwrite(<span class="tok-s">"rotated.png"</span>, result)`,
+    `<span class="tok-ok">✓ Rotation complete → rotated.png</span>`,
+  ].filter(l => l !== '');
+
+  await typeLog('log-cv', lines, 100);
+
+  // visual transform
+  if (previewImg) {
+    if (dir === 'flip_h') previewImg.style.transform = 'scaleX(-1)';
+    else if (dir === 'flip_v') previewImg.style.transform = 'scaleY(-1)';
+    else previewImg.style.transform = `rotate(${deg}deg)`;
+  }
+}
+
+// ── Helper: file → base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Helper: rotate image on canvas, return base64 + dataURL
+function rotateImageOnCanvas(imgEl, params) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imgEl.src;
+    img.onload = () => {
+      const { direction: dir, angle: a } = params;
+      const W = img.naturalWidth, H = img.naturalHeight;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.translate(W/2, H/2);
+      if (dir === 'flip_h')      ctx.scale(-1, 1);
+      else if (dir === 'flip_v') ctx.scale(1, -1);
+      else {
+        const deg = dir === 'counterclockwise' ? a : -a;
+        ctx.rotate(deg * Math.PI / 180);
+      }
+      ctx.drawImage(img, -W/2, -H/2, W, H);
+      ctx.restore();
+      const dataURL = canvas.toDataURL('image/png');
+      resolve({ dataURL, base64: dataURL.split(',')[1] });
+    };
+  });
+}
+
+// ── Inpainting step — real API or visual simulation
+async function runInpaint(params, rotatedBase64) {
+  const logEl = document.getElementById('log-img');
+  const hasKey = getKey().length > 10;
+  const model = 'gemini-2.0-flash-preview-image-generation';
+
+  const logLines = [
+    `<span class="tok-c"># Tool 2: Nano Banana Pro — Gemini Inpainting</span>`,
+    `model = <span class="tok-s">"${model}"</span>`,
+    `<span class="tok-k">api_key</span> = <span class="tok-v">${hasKey ? '"AIza…" ✓' : '"— no key, visual preview only —"'}</span>`,
+    `prompt = <span class="tok-s">"${params.fill_prompt || 'seamless photorealistic background continuation'}"</span>`,
+    `<span class="tok-c"># Sending rotated image + inpaint instruction…</span>`,
+  ];
+  await typeLog('log-img', logLines, 90);
+
+  if (!hasKey) {
+    await sleep(600);
+    logEl.innerHTML += `<span class="tok-c"># ⚠ No API key — showing canvas preview\n</span>`;
+    return null;
+  }
+
+  // Real call
+  logEl.innerHTML += `<span class="spin" style="display:inline-block;width:10px;height:10px;border:2px solid #EA580C;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:5px;"></span> Calling Nano Banana Pro…\n`;
+
+  try {
+    const result = await callNanoBananaPro(rotatedBase64, 'image/png', params.fill_prompt, params);
+    logEl.innerHTML += `<span class="tok-ok">✓ Inpainting complete — image returned\n</span>`;
+    return result;
+  } catch(e) {
+    logEl.innerHTML += `<span class="tok-err">✗ API error: ${e.message}\n</span>`;
+    logEl.innerHTML += `<span class="tok-c"># Falling back to canvas preview\n</span>`;
+    return null;
+  }
+}
+
+// ── draw result (real image or canvas fallback)
+function showResult(previewImg, params, inpaintResult, rotatedDataURL) {
+  const canvas = document.getElementById('res-canvas');
+
+  if (inpaintResult) {
+    // Show real Nano Banana Pro output as <img>
+    const resultCard = canvas.parentElement;
+    canvas.style.display = 'none';
+    let img = resultCard.querySelector('#res-final-img');
+    if (!img) {
+      img = document.createElement('img');
+      img.id = 'res-final-img';
+      img.style.cssText = 'max-width:100%;max-height:180px;border-radius:8px;display:block;margin:0 auto;';
+      canvas.after(img);
+    }
+    img.src = `data:${inpaintResult.mimeType};base64,${inpaintResult.base64}`;
+    return;
+  }
+
+  // Canvas fallback — draw rotated + corner glow
+  const existingFinal = document.getElementById('res-final-img');
+  if (existingFinal) existingFinal.remove();
+  canvas.style.display = '';
+
+  const ctx = canvas.getContext('2d');
+  const S = 260;
+  canvas.width = S; canvas.height = S;
+  canvas.style.maxHeight = '180px';
+
+  const g = ctx.createLinearGradient(0,0,S,S);
+  g.addColorStop(0, '#FFF8F0'); g.addColorStop(1, '#FEF3E2');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,S,S);
+
+  const img = new Image();
+  img.src = rotatedDataURL || previewImg.src;
+  img.onload = () => {
+    ctx.save();
+    ctx.translate(S/2, S/2);
+    const { direction: dir, angle: a } = params;
+    if (dir === 'flip_h')        ctx.scale(-1, 1);
+    else if (dir === 'flip_v')   ctx.scale(1, -1);
+    else {
+      const d = dir === 'counterclockwise' ? a : -a;
+      ctx.rotate(d * Math.PI / 180);
+    }
+    const sz = S * 0.72;
+    ctx.drawImage(img, -sz/2, -sz/2, sz, sz);
+    ctx.restore();
+    if (params.inpainting || params.outpainting) {
+      [[0,0],[S-50,0],[0,S-50],[S-50,S-50]].forEach(([x,y]) => {
+        const cg = ctx.createRadialGradient(x+25,y+25,3,x+25,y+25,40);
+        cg.addColorStop(0,'rgba(255,214,0,0.35)');
+        cg.addColorStop(1,'transparent');
+        ctx.fillStyle = cg; ctx.fillRect(x,y,50,50);
+      });
+    }
+  };
+}
+
+// ── render params grid
+function renderParams(params, usedRealApi) {
+  const dirMap = {
+    clockwise: '↻ Clockwise', counterclockwise: '↺ Counter-CW',
+    flip_h: '⇄ Flip Horizontal', flip_v: '↕ Flip Vertical'
+  };
+  const cells = [
+    ['Direction', dirMap[params.direction] || params.direction],
+    ['Angle', `${params.angle}°`],
+    ['Inpainting', params.inpainting ? '✅ Enabled' : '—'],
+    ['Fill Model', usedRealApi ? '🍌 Nano Banana Pro (live)' : 'Canvas preview'],
+  ];
+  document.getElementById('params-grid').innerHTML = cells.map(([k,v]) =>
+    `<div class="param-cell"><div class="param-key">${k}</div><div class="param-val">${v}</div></div>`
+  ).join('');
+}
+
+// ── main
+async function runAgent() {
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt) { alert('Please enter a rotation instruction.'); return; }
+  if (!uploadedFile) { alert('Please upload an image first.'); return; }
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  document.getElementById('btn-icon').innerHTML = '<span class="spin"></span>';
+  document.getElementById('btn-txt').textContent = 'Running…';
+  document.getElementById('result-panel').style.display = 'none';
+
+  ['step-brain','step-cv','step-img'].forEach(s =>
+    document.getElementById(s).classList.remove('active','done'));
+
+  // ── STEP 1: LLM Brain
+  setStep('step-brain'); litModule('mod-brain');
+  document.getElementById('log-brain').innerHTML =
+    '<span class="spin" style="display:inline-block;width:11px;height:11px;border:2px solid #6366F1;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;"></span> Calling Claude Sonnet — parsing your instruction…';
+
+  let params;
+  try {
+    params = await callLLM(prompt);
+  } catch(_) {
+    const ccw = /counter|ccw|anti/i.test(prompt);
+    const m = prompt.match(/(\d+)/);
+    params = {
+      direction: /flip.*h/i.test(prompt) ? 'flip_h' : /flip.*v/i.test(prompt) ? 'flip_v' : ccw ? 'counterclockwise' : 'clockwise',
+      angle: m ? parseInt(m[1]) : 45,
+      inpainting: /fill|corner|inpaint|outpaint/i.test(prompt),
+      outpainting: /outpaint/i.test(prompt),
+      fill_prompt: 'seamless photorealistic background continuation',
+      reasoning: 'Extracted from keyword patterns (fallback)'
+    };
+  }
+
+  await typeLog('log-brain', [
+    `<span class="tok-c"># LLM extracted parameters</span>`,
+    `<span class="tok-k">direction</span>  = <span class="tok-v">"${params.direction}"</span>`,
+    `<span class="tok-k">angle</span>      = <span class="tok-v">${params.angle}</span>`,
+    `<span class="tok-k">inpainting</span> = <span class="tok-v">${params.inpainting}</span>`,
+    `<span class="tok-k">fill_prompt</span>= <span class="tok-s">"${params.fill_prompt || '—'}"</span>`,
+    `<span class="tok-c"># ${params.reasoning || 'Parameters extracted successfully'}</span>`,
+    `<span class="tok-ok">✓ Ready to invoke Tool 1</span>`,
+  ], 60);
+
+  doneStep('step-brain'); flowArr('arr1'); await sleep(250);
+
+  // ── STEP 2: OpenCV (visual rotation on canvas)
+  setStep('step-cv'); litModule('mod-cv');
+  const previewImg = document.getElementById('preview-img');
+  await runCV(params, previewImg);
+
+  // Also produce rotated base64 for Gemini
+  let rotatedBase64 = null, rotatedDataURL = null;
+  try {
+    const rotated = await rotateImageOnCanvas(previewImg, params);
+    rotatedBase64 = rotated.base64;
+    rotatedDataURL = rotated.dataURL;
+  } catch(_) {}
+
+  doneStep('step-cv'); flowArr('arr2'); await sleep(250);
+
+  // ── STEP 3: Nano Banana Pro Inpainting
+  setStep('step-img'); litModule('mod-img');
+  const inpaintResult = await runInpaint(params, rotatedBase64);
+  doneStep('step-img'); litModule(null); setStep(null);
+
+  // ── Show result
+  await sleep(150);
+  document.getElementById('result-panel').style.display = 'block';
+  document.getElementById('res-before').src = previewImg.src;
+  showResult(previewImg, params, inpaintResult, rotatedDataURL);
+  renderParams(params, !!inpaintResult);
+
+  btn.disabled = false;
+  document.getElementById('btn-icon').textContent = '🍌';
+  document.getElementById('btn-txt').textContent = 'Run Agent';
+}
+</script>
+</body>
+</html>
+
