@@ -1099,11 +1099,16 @@ Keep the rotated subject exactly as-is; only fill the blank corner areas.`;
   return { base64: imgPart.inline_data.data, mimeType: imgPart.inline_data.mime_type };
 }
 
-// ── OpenCV sim
+// ── OpenCV sim — actually rotates pixels on canvas, updates preview
 async function runCV(params, previewImg) {
   const dir = params.direction;
   const a = params.angle;
-  const deg = dir === 'counterclockwise' ? a : dir === 'clockwise' ? -a : 0;
+  // Canvas rotation: clockwise = positive radians, so clockwise deg is positive
+  // cv2.getRotationMatrix2D angle: positive = CCW in OpenCV convention
+  // We match the user's intent directly:
+  //   clockwise     → rotate canvas +deg (clockwise)
+  //   counterclockwise → rotate canvas -deg (counter-clockwise)
+  const cvAngle = dir === 'counterclockwise' ? a : dir === 'clockwise' ? -a : 0;
 
   const lines = [
     `<span class="tok-c"># Tool 1: OpenCV Affine Rotation</span>`,
@@ -1114,7 +1119,7 @@ async function runCV(params, previewImg) {
       ? `result = cv2.flip(img, <span class="tok-v">1</span>)  <span class="tok-c"># horizontal flip</span>`
     : dir === 'flip_v'
       ? `result = cv2.flip(img, <span class="tok-v">0</span>)  <span class="tok-c"># vertical flip</span>`
-      : `M = cv2.getRotationMatrix2D((w/2, h/2), <span class="tok-v">${deg}</span>, 1.0)`,
+      : `M = cv2.getRotationMatrix2D((w/2, h/2), <span class="tok-v">${a}</span>, 1.0)  <span class="tok-c"># ${dir}</span>`,
     dir.startsWith('flip') ? '' : `result = cv2.warpAffine(img, M, (w, h))`,
     `cv2.imwrite(<span class="tok-s">"rotated.png"</span>, result)`,
     `<span class="tok-ok">✓ Rotation complete → rotated.png</span>`,
@@ -1122,12 +1127,56 @@ async function runCV(params, previewImg) {
 
   await typeLog('log-cv', lines, 100);
 
-  // visual transform
+  // Actually redraw pixels — replace preview img with a canvas showing real rotation
   if (previewImg) {
-    if (dir === 'flip_h') previewImg.style.transform = 'scaleX(-1)';
-    else if (dir === 'flip_v') previewImg.style.transform = 'scaleY(-1)';
-    else previewImg.style.transform = `rotate(${deg}deg)`;
+    await applyRealRotationToPreview(previewImg, params);
   }
+}
+
+// Draws the truly rotated image onto an offscreen canvas,
+// then updates the preview <img> src so what you see = what you download
+function applyRealRotationToPreview(previewImg, params) {
+  return new Promise(resolve => {
+    const src = new Image();
+    src.onload = () => {
+      const { direction: dir, angle: a } = params;
+      const W = src.naturalWidth, H = src.naturalHeight;
+
+      // For non-90° rotations the bounding box grows — calculate new size
+      let newW = W, newH = H;
+      if (!dir.startsWith('flip') && a % 90 !== 0) {
+        const rad = a * Math.PI / 180;
+        newW = Math.ceil(Math.abs(W * Math.cos(rad)) + Math.abs(H * Math.sin(rad)));
+        newH = Math.ceil(Math.abs(W * Math.sin(rad)) + Math.abs(H * Math.cos(rad)));
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = newW; canvas.height = newH;
+      const ctx = canvas.getContext('2d');
+
+      ctx.save();
+      ctx.translate(newW / 2, newH / 2);
+
+      if (dir === 'flip_h') {
+        ctx.scale(-1, 1);
+      } else if (dir === 'flip_v') {
+        ctx.scale(1, -1);
+      } else {
+        // clockwise = negative angle in canvas (canvas Y-axis is flipped)
+        const canvasDeg = dir === 'clockwise' ? a : -a;
+        ctx.rotate(canvasDeg * Math.PI / 180);
+      }
+
+      ctx.drawImage(src, -W / 2, -H / 2, W, H);
+      ctx.restore();
+
+      // Push real pixels back to preview img
+      previewImg.src = canvas.toDataURL('image/png');
+      previewImg.style.transform = ''; // clear any lingering CSS transform
+      resolve(canvas.toDataURL('image/png'));
+    };
+    src.src = previewImg.src;
+  });
 }
 
 // ── Helper: file → base64
@@ -1140,32 +1189,14 @@ function fileToBase64(file) {
   });
 }
 
-// ── Helper: rotate image on canvas, return base64 + dataURL
-function rotateImageOnCanvas(imgEl, params) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = imgEl.src;
-    img.onload = () => {
-      const { direction: dir, angle: a } = params;
-      const W = img.naturalWidth, H = img.naturalHeight;
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-      ctx.save();
-      ctx.translate(W/2, H/2);
-      if (dir === 'flip_h')      ctx.scale(-1, 1);
-      else if (dir === 'flip_v') ctx.scale(1, -1);
-      else {
-        const deg = dir === 'counterclockwise' ? a : -a;
-        ctx.rotate(deg * Math.PI / 180);
-      }
-      ctx.drawImage(img, -W/2, -H/2, W, H);
-      ctx.restore();
-      const dataURL = canvas.toDataURL('image/png');
-      resolve({ dataURL, base64: dataURL.split(',')[1] });
-    };
-  });
+// ── After runCV the previewImg.src is already the real rotated dataURL —
+//    just extract base64 from it for the Gemini call
+function getRotatedBase64FromPreview(previewImg) {
+  const src = previewImg.src;
+  if (src.startsWith('data:')) {
+    return { base64: src.split(',')[1], dataURL: src };
+  }
+  return null;
 }
 
 // ── Inpainting step — real API or visual simulation
@@ -1203,64 +1234,53 @@ async function runInpaint(params, rotatedBase64) {
   }
 }
 
-// ── draw result (real image or canvas fallback)
-function showResult(previewImg, params, inpaintResult, rotatedDataURL) {
-  const canvas = document.getElementById('res-canvas');
+// ── Show result — previewImg.src is already the real rotated pixels
+function showResult(previewImg, params, inpaintResult) {
+  const resultCard = document.getElementById('res-canvas').parentElement;
+
+  // Remove any old final img
+  const old = document.getElementById('res-final-img');
+  if (old) old.remove();
+  document.getElementById('res-canvas').style.display = 'none';
+
+  const img = document.createElement('img');
+  img.id = 'res-final-img';
+  img.style.cssText = 'max-width:100%;max-height:180px;border-radius:8px;display:block;margin:0 auto;';
 
   if (inpaintResult) {
-    // Show real Nano Banana Pro output as <img>
-    const resultCard = canvas.parentElement;
-    canvas.style.display = 'none';
-    let img = resultCard.querySelector('#res-final-img');
-    if (!img) {
-      img = document.createElement('img');
-      img.id = 'res-final-img';
-      img.style.cssText = 'max-width:100%;max-height:180px;border-radius:8px;display:block;margin:0 auto;';
-      canvas.after(img);
-    }
     img.src = `data:${inpaintResult.mimeType};base64,${inpaintResult.base64}`;
-    return;
+  } else {
+    // Use the already-rotated preview (real pixels, not CSS trick)
+    img.src = previewImg.src;
   }
 
-  // Canvas fallback — draw rotated + corner glow
-  const existingFinal = document.getElementById('res-final-img');
-  if (existingFinal) existingFinal.remove();
-  canvas.style.display = '';
+  document.getElementById('res-canvas').after(img);
 
-  const ctx = canvas.getContext('2d');
-  const S = 260;
-  canvas.width = S; canvas.height = S;
-  canvas.style.maxHeight = '180px';
+  // Download button — downloads actual rotated pixels
+  const oldBtn = document.getElementById('dl-btn');
+  if (oldBtn) oldBtn.remove();
 
-  const g = ctx.createLinearGradient(0,0,S,S);
-  g.addColorStop(0, '#FFF8F0'); g.addColorStop(1, '#FEF3E2');
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,S,S);
-
-  const img = new Image();
-  img.src = rotatedDataURL || previewImg.src;
-  img.onload = () => {
-    ctx.save();
-    ctx.translate(S/2, S/2);
-    const { direction: dir, angle: a } = params;
-    if (dir === 'flip_h')        ctx.scale(-1, 1);
-    else if (dir === 'flip_v')   ctx.scale(1, -1);
-    else {
-      const d = dir === 'counterclockwise' ? a : -a;
-      ctx.rotate(d * Math.PI / 180);
-    }
-    const sz = S * 0.72;
-    ctx.drawImage(img, -sz/2, -sz/2, sz, sz);
-    ctx.restore();
-    if (params.inpainting || params.outpainting) {
-      [[0,0],[S-50,0],[0,S-50],[S-50,S-50]].forEach(([x,y]) => {
-        const cg = ctx.createRadialGradient(x+25,y+25,3,x+25,y+25,40);
-        cg.addColorStop(0,'rgba(255,214,0,0.35)');
-        cg.addColorStop(1,'transparent');
-        ctx.fillStyle = cg; ctx.fillRect(x,y,50,50);
-      });
-    }
+  const dlBtn = document.createElement('button');
+  dlBtn.id = 'dl-btn';
+  dlBtn.innerHTML = '⬇ Download Result';
+  dlBtn.style.cssText = `
+    margin-top: 14px; width: 100%;
+    background: #F0FDF4; border: 1.5px solid #86EFAC;
+    border-radius: 10px; color: #166534;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px; font-weight: 700;
+    padding: 10px; cursor: pointer;
+    transition: background .15s;
+  `;
+  dlBtn.onmouseover = () => dlBtn.style.background = '#DCFCE7';
+  dlBtn.onmouseleave = () => dlBtn.style.background = '#F0FDF4';
+  dlBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.href = img.src;
+    a.download = 'rotated_result.png';
+    a.click();
   };
+  document.getElementById('params-grid').after(dlBtn);
 }
 
 // ── render params grid
@@ -1328,18 +1348,15 @@ async function runAgent() {
 
   doneStep('step-brain'); flowArr('arr1'); await sleep(250);
 
-  // ── STEP 2: OpenCV (visual rotation on canvas)
+  // ── STEP 2: OpenCV (real canvas pixel rotation — updates previewImg.src)
   setStep('step-cv'); litModule('mod-cv');
   const previewImg = document.getElementById('preview-img');
+  // Save original src for "before" panel before runCV overwrites it
+  const originalSrc = previewImg.src;
   await runCV(params, previewImg);
-
-  // Also produce rotated base64 for Gemini
-  let rotatedBase64 = null, rotatedDataURL = null;
-  try {
-    const rotated = await rotateImageOnCanvas(previewImg, params);
-    rotatedBase64 = rotated.base64;
-    rotatedDataURL = rotated.dataURL;
-  } catch(_) {}
+  // previewImg.src is now the real rotated dataURL
+  const rotated = getRotatedBase64FromPreview(previewImg);
+  const rotatedBase64 = rotated?.base64 || null;
 
   doneStep('step-cv'); flowArr('arr2'); await sleep(250);
 
@@ -1351,8 +1368,8 @@ async function runAgent() {
   // ── Show result
   await sleep(150);
   document.getElementById('result-panel').style.display = 'block';
-  document.getElementById('res-before').src = previewImg.src;
-  showResult(previewImg, params, inpaintResult, rotatedDataURL);
+  document.getElementById('res-before').src = originalSrc;
+  showResult(previewImg, params, inpaintResult);
   renderParams(params, !!inpaintResult);
 
   btn.disabled = false;
